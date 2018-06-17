@@ -45,7 +45,7 @@ def readFromFile(username):
 			return False
 	else:
 		return False
-lookupUsers = ["inf_dragonfly", "mrdm47", "g._ucar"] #Bot will send users in this list who unfollowed/followed them.
+lookupUsers = ["USER1", "USER2", "USER3"] #Bot will send users in this list who unfollowed/followed them.
 while 1: 
 	for lookupUser in lookupUsers:
 		print(lookupUser)
