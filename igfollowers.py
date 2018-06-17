@@ -1,17 +1,21 @@
-from InstagramAPI import InstagramAPI #pip install PythonInstagram
-import sys
-import json
-import requests
-from requests import *
+from InstagramAPI import InstagramAPI #https://github.com/raphasousa/Instagram-API-python clone this. 
+import sys			      #Install requirements with pip3 install -r requirements.txt
+import json		 	      #Change the InstagramAPI.py file that you cloned with this: 
+import requests			      #https://github.com/raphasousa/Instagram-API-python/blob/f1418b6fe7eba04636a26a40740b007943d845a7/InstagramAPI/InstagramAPI.py
+from requests import *		      #Then run python setup.py install
 import os.path
-#It doesn't have to be your account. It can be any, but if the profile you look is private, you need to follow it. 
-API = InstagramAPI("USERNAME HERE", "PASSWORD HERE")
+import time
+
+API = InstagramAPI("UsernameOfBot", "PasswordOfBot") 
 API.login()
-lookupUser = input("\nUser for follower comparasion: ")
-def getID(username): #Gets ID of user you gave.
+def getID(username):
 	API.searchUsername(username)
 	return API.LastJson['user']['pk']
-def getFollowers(ID): #Gets a list of users who follow that user you gave.
+def getJson(ID):
+	url = "https://i.instagram.com/api/v1/users/" + str(ID) + "/info/"
+	request = requests.get(url)
+	return request.json()
+def getFollowers(ID):
 	followers = []
 	followerDict = API.getTotalFollowers(ID)
 	followerCount = len(followerDict)
@@ -20,7 +24,7 @@ def getFollowers(ID): #Gets a list of users who follow that user you gave.
 		followers.append(followerDict[i]["username"])
 		i += 1
 	return followers
-def writeToFile(followers): #Writes followers it got from Instagram to a file. 
+def writeToFile(followers):
 	f = open(lookupUser + ".txt", "w")
 	i = 0
 	while i < len(followers):
@@ -28,7 +32,7 @@ def writeToFile(followers): #Writes followers it got from Instagram to a file.
 		i += 1
 	f.close()
 	print("Wrote " + str(len(followers)) + " users to the file.")
-def readFromFile(username): #Reads followers from file for comparing it with new list that it got from Instagram.
+def readFromFile(username):
 	if os.path.isfile(username + ".txt"):
 		oldfollowers = []
 		try:
@@ -41,44 +45,58 @@ def readFromFile(username): #Reads followers from file for comparing it with new
 			return False
 	else:
 		return False
-
-oldFollowers = readFromFile(lookupUser)
-curFollowers = getFollowers(getID(lookupUser))
-if oldFollowers == False: #If it is the first run on user you gave to the program it will only log followers of that user.
-	writeToFile(getFollowers(getID(lookupUser))) 
-	print("This was the first time you searched for this user. You can now use comparing. ")
-	exit()
-mutualSet = set(oldFollowers) & set(curFollowers) #Gets the mutual users on the new and old list.
-mutualList = []
-print("\nThis account used to has " + str(len(oldFollowers)) + " followers.")
-print("It now has " + str(len(curFollowers)) + " followers.")
-writeToFile(curFollowers)
-for i in mutualSet:
-	mutualList.append(i) #set is not indexable so it makes it a list.
-i = 0
-while i < len(mutualList):
-	curFollowers.remove(mutualList[i]) #Remove mutuals from current and old followers. 
-	oldFollowers.remove(mutualList[i]) #The differences will be left on the list. 
-	i += 1
-print("\nUnfollowed users: ")
-i = 0
-f = open(lookupUser + "_unfollowed.txt", "w")
-try: 
-	while i < len(oldFollowers): #Prints unfollowed users and writes them to a file.
-		f.write(oldFollowers[i] + "\n")
-		print(oldFollowers[i])
-		i += 1
-except: 
-	pass
-f.close()
-i = 0
-print("\nNew followers: ")
-f = open(lookupUser + "_newFollowers.txt", "w")
-try:
-	while i < len(curFollowers):  #Prints new followed users and writes them to a file.
-		print(curFollowers[i])
-		f.write(curFollowers[i] + "\n")
-		i += 1
-except: 
-	pass
-f.close()
+lookupUsers = ["inf_dragonfly", "mrdm47", "g._ucar"]
+while 1: 
+	for lookupUser in lookupUsers:
+		print(lookupUser)
+		sendString = ""
+		lookupID = getID(lookupUser)
+		oldFollowers = readFromFile(lookupUser)
+		curFollowers = getFollowers(lookupID)
+		if oldFollowers == False:
+			writeToFile(getFollowers(lookupID))
+			print("This was the first time you searched for this user. You can now use comparing. ")
+			continue
+		mutualSet = set(oldFollowers) & set(curFollowers)
+		mutualList = []
+		print("\nThis account used to has " + str(len(oldFollowers)) + " followers.")
+		print("It now has " + str(len(curFollowers)) + " followers.")
+		writeToFile(curFollowers)
+		for i in mutualSet:
+			mutualList.append(i)
+		i = 0
+		while i < len(mutualList):
+			curFollowers.remove(mutualList[i])
+			oldFollowers.remove(mutualList[i])
+			i += 1
+		print("\nUnfollowed users: ")
+		sendString = sendString + "Users who have unfollowed: \n" #
+		i = 0
+		f = open(lookupUser + "_unfollowed.txt", "w")
+		try: 
+			while i < len(oldFollowers):
+				f.write(oldFollowers[i] + "\n")
+				sendString = sendString + oldFollowers[i] + + ", "
+				print(oldFollowers[i])
+				i += 1
+		except: 
+			pass
+		f.close()
+		i = 0
+		print("\nNew followers: ")
+		sendString = sendString + "\nUsers who have followed: \n"
+		f = open(lookupUser + "_newFollowers.txt", "w")
+		try:
+			while i < len(curFollowers):
+				print(curFollowers[i])
+				f.write(curFollowers[i] + "\n")
+				sendString = sendString + curFollowers[i] + ", "
+				i += 1
+		except:
+			pass
+		x = API.direct_message(sendString, lookupID)
+		print(sendString)
+		print(x)
+		f.close()
+	time.sleep(60 * 60 * 24) #Wait for 24 hours.
+	
